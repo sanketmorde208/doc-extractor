@@ -1,0 +1,29 @@
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+python-multipart==0.0.9
+
+# Document parsing
+pdfplumber==0.11.0
+PyPDF2==3.0.1
+python-docx==1.1.2
+
+# OCR (optional)
+# pytesseract==0.3.10
+# Pillow==10.3.0
+
+# AI / NLP
+transformers==4.41.0
+torch==2.3.0             # or torch-cpu for lighter install
+keybert==0.8.4
+spacy==3.7.4
+# python -m spacy download en_core_web_sm
+
+# Sentiment fallback
+textblob==0.18.0
+
+# Language detection
+langdetect==1.0.9
+
+# Translation
+deep-translator==1.11.4
+# argostranslate==1.9.6   # offline alternative
