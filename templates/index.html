@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>DocExtract — Document Extraction Platform</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg: #0d0f12;
+      --surface: #13161b;
+      --border: #1e2330;
+      --accent: #e8c547;
+      --accent2: #4fd1a5;
+      --text: #e2e4ea;
+      --muted: #5a6072;
+      --danger: #e85d5d;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* ─── Background grid ──────────────────────────────────────────── */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(232,197,71,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(232,197,71,.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ─── Header ───────────────────────────────────────────────────── */
+    header {
+      position: relative;
+      z-index: 10;
+      padding: 2rem 3rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1.6rem;
+      color: var(--accent);
+      letter-spacing: -0.5px;
+    }
+
+    .logo span { color: var(--accent2); }
+
+    .tag-badge {
+      font-size: 0.65rem;
+      background: rgba(232,197,71,.12);
+      border: 1px solid rgba(232,197,71,.3);
+      color: var(--accent);
+      padding: 0.25rem 0.6rem;
+      border-radius: 2px;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    /* ─── Layout ───────────────────────────────────────────────────── */
+    .container {
+      position: relative;
+      z-index: 5;
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 3rem 2rem;
+    }
+
+    .hero {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .hero h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      line-height: 1.1;
+      margin-bottom: 1rem;
+    }
+
+    .hero h1 em {
+      color: var(--accent);
+      font-style: italic;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 0.85rem;
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.8;
+    }
+
+    /* ─── Drop zone ─────────────────────────────────────────────────── */
+    .drop-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 6px;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      position: relative;
+      margin-bottom: 2rem;
+    }
+
+    .drop-zone:hover, .drop-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(232,197,71,.04);
+    }
+
+    .drop-zone input[type=file] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+    }
+
+    .drop-icon {
+      font-size: 2.5rem;
+      margin-bottom: 1rem;
+      display: block;
+    }
+
+    .drop-zone p {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .drop-zone .filename {
+      color: var(--accent2);
+      margin-top: .5rem;
+      font-size: 0.8rem;
+    }
+
+    /* ─── Use case grid ─────────────────────────────────────────────── */
+    .use-cases-label {
+      font-size: 0.65rem;
+      color: var(--muted);
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+
+    .uc-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      padding: 0.85rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      text-align: left;
+      transition: border-color .15s, background .15s, transform .1s;
+      display: flex;
+      flex-direction: column;
+      gap: .3rem;
+    }
+
+    .uc-btn:hover {
+      border-color: var(--accent);
+      background: rgba(232,197,71,.06);
+    }
+
+    .uc-btn.active {
+      border-color: var(--accent);
+      background: rgba(232,197,71,.1);
+    }
+
+    .uc-btn:active { transform: scale(.98); }
+
+    .uc-num {
+      color: var(--accent);
+      font-size: 0.6rem;
+      letter-spacing: 1px;
+    }
+
+    .uc-name { font-weight: 500; }
+
+    .uc-desc { color: var(--muted); font-size: 0.65rem; }
+
+    /* ─── Extra params ──────────────────────────────────────────────── */
+    .extra-params {
+      display: none;
+      margin-bottom: 1.5rem;
+    }
+
+    .extra-params.show { display: flex; align-items: center; gap: 1rem; }
+
+    .extra-params label { font-size: 0.75rem; color: var(--muted); }
+
+    .extra-params select {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.75rem;
+      padding: .4rem .7rem;
+      border-radius: 3px;
+      outline: none;
+    }
+
+    /* ─── Run button ────────────────────────────────────────────────── */
+    .run-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0d0f12;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      font-weight: 500;
+      padding: 1rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      transition: opacity .2s, transform .1s;
+      margin-bottom: 2rem;
+    }
+
+    .run-btn:hover { opacity: .88; }
+    .run-btn:active { transform: scale(.99); }
+    .run-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    /* ─── Results ───────────────────────────────────────────────────── */
+    .results {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .results.show { display: block; }
+
+    .results-header {
+      padding: 1rem 1.5rem;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .results-header h3 {
+      font-family: 'DM Serif Display', serif;
+      font-size: 1rem;
+      color: var(--accent2);
+    }
+
+    .copy-btn {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.65rem;
+      padding: .25rem .6rem;
+      border-radius: 3px;
+      cursor: pointer;
+      transition: color .15s, border-color .15s;
+    }
+
+    .copy-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    pre {
+      padding: 1.5rem;
+      overflow-x: auto;
+      font-size: 0.72rem;
+      line-height: 1.7;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    /* ─── Loader ────────────────────────────────────────────────────── */
+    .loader {
+      display: none;
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .loader.show { display: block; }
+
+    .spinner {
+      display: inline-block;
+      width: 20px; height: 20px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .8s linear infinite;
+      margin-bottom: .75rem;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Error ─────────────────────────────────────────────────────── */
+    .error-msg {
+      display: none;
+      background: rgba(232,93,93,.08);
+      border: 1px solid rgba(232,93,93,.3);
+      color: var(--danger);
+      padding: 1rem 1.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .error-msg.show { display: block; }
+
+    /* ─── Footer ────────────────────────────────────────────────────── */
+    footer {
+      position: relative;
+      z-index: 5;
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+      font-size: 0.65rem;
+      border-top: 1px solid var(--border);
+      letter-spacing: .5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Doc<span>Extract</span></div>
+  <div class="tag-badge">&lt;text&gt; tag enabled</div>
+</header>
+
+<div class="container">
+
+  <div class="hero">
+    <h1>Document Extraction<br/><em>Platform</em></h1>
+    <p>Upload any PDF, DOCX, or TXT file and run one of the nine extraction use cases powered by AI.</p>
+  </div>
+
+  <!-- Drop zone -->
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" accept=".pdf,.docx,.doc,.txt,.png,.jpg,.jpeg"/>
+    <span class="drop-icon">📄</span>
+    <p>Drop your file here or click to browse</p>
+    <p>Supports PDF · DOCX · TXT · Images</p>
+    <p class="filename" id="fileName"></p>
+  </div>
+
+  <!-- Use case selection -->
+  <p class="use-cases-label">Select Use Case</p>
+  <div class="grid" id="ucGrid">
+    <button class="uc-btn" data-uc="text" data-endpoint="/extract/text">
+      <span class="uc-num">UC 01</span>
+      <span class="uc-name">Text Extraction</span>
+      <span class="uc-desc">Extract raw &lt;text&gt; from document</span>
+    </button>
+    <button class="uc-btn" data-uc="summary" data-endpoint="/extract/summary">
+      <span class="uc-num">UC 02</span>
+      <span class="uc-name">Summarization</span>
+      <span class="uc-desc">AI-generated document summary</span>
+    </button>
+    <button class="uc-btn" data-uc="keywords" data-endpoint="/extract/keywords">
+      <span class="uc-num">UC 03</span>
+      <span class="uc-name">Keyword Extraction</span>
+      <span class="uc-desc">Top keywords &amp; key phrases</span>
+    </button>
+    <button class="uc-btn" data-uc="tables" data-endpoint="/extract/tables">
+      <span class="uc-num">UC 04</span>
+      <span class="uc-name">Table Extraction</span>
+      <span class="uc-desc">Extract structured tables</span>
+    </button>
+    <button class="uc-btn" data-uc="images" data-endpoint="/extract/images">
+      <span class="uc-num">UC 05</span>
+      <span class="uc-name">Image Metadata</span>
+      <span class="uc-desc">Extract embedded image info</span>
+    </button>
+    <button class="uc-btn" data-uc="language" data-endpoint="/extract/language">
+      <span class="uc-num">UC 06</span>
+      <span class="uc-name">Language Detection</span>
+      <span class="uc-desc">Detect document language</span>
+    </button>
+    <button class="uc-btn" data-uc="sentiment" data-endpoint="/extract/sentiment">
+      <span class="uc-num">UC 07</span>
+      <span class="uc-name">Sentiment Analysis</span>
+      <span class="uc-desc">Positive / Negative / Neutral</span>
+    </button>
+    <button class="uc-btn" data-uc="entities" data-endpoint="/extract/entities">
+      <span class="uc-num">UC 08</span>
+      <span class="uc-name">Named Entities</span>
+      <span class="uc-desc">Persons, Orgs, Locations</span>
+    </button>
+    <button class="uc-btn" data-uc="translate" data-endpoint="/extract/translate">
+      <span class="uc-num">UC 09</span>
+      <span class="uc-name">Translation</span>
+      <span class="uc-desc">Translate to target language</span>
+    </button>
+  </div>
+
+  <!-- Extra params (translate) -->
+  <div class="extra-params" id="extraParams">
+    <label for="targetLang">Target Language:</label>
+    <select id="targetLang">
+      <option value="es">Spanish (es)</option>
+      <option value="fr">French (fr)</option>
+      <option value="de">German (de)</option>
+      <option value="hi">Hindi (hi)</option>
+      <option value="zh-CN">Chinese Simplified (zh-CN)</option>
+      <option value="ar">Arabic (ar)</option>
+      <option value="pt">Portuguese (pt)</option>
+      <option value="ja">Japanese (ja)</option>
+      <option value="ru">Russian (ru)</option>
+    </select>
+  </div>
+
+  <!-- Error -->
+  <div class="error-msg" id="errorMsg"></div>
+
+  <!-- Run -->
+  <button class="run-btn" id="runBtn" disabled>Run Extraction</button>
+
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="spinner"></div>
+    <p>Extracting document content…</p>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <div class="results-header">
+      <h3 id="resultTitle">Result</h3>
+      <button class="copy-btn" id="copyBtn">Copy JSON</button>
+    </div>
+    <pre id="resultPre"></pre>
+  </div>
+
+</div>
+
+<footer>DocExtract Platform · Document Extraction API · All 9 Use Cases · &lt;text&gt; tag mandatory</footer>
+
+<script>
+  const fileInput = document.getElementById('fileInput');
+  const dropZone  = document.getElementById('dropZone');
+  const fileName  = document.getElementById('fileName');
+  const runBtn    = document.getElementById('runBtn');
+  const loader    = document.getElementById('loader');
+  const results   = document.getElementById('results');
+  const resultPre = document.getElementById('resultPre');
+  const resultTitle = document.getElementById('resultTitle');
+  const errorMsg  = document.getElementById('errorMsg');
+  const copyBtn   = document.getElementById('copyBtn');
+  const extraParams = document.getElementById('extraParams');
+  const targetLang  = document.getElementById('targetLang');
+
+  let selectedEndpoint = null;
+  let selectedUcName = null;
+  let selectedFile = null;
+
+  // Drag-and-drop styling
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  function handleFile(file) {
+    selectedFile = file;
+    fileName.textContent = `✓ ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+    checkReady();
+  }
+
+  // Use case buttons
+  document.querySelectorAll('.uc-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.uc-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedEndpoint = btn.dataset.endpoint;
+      selectedUcName   = btn.querySelector('.uc-name').textContent;
+      extraParams.classList.toggle('show', btn.dataset.uc === 'translate');
+      checkReady();
+    });
+  });
+
+  function checkReady() {
+    runBtn.disabled = !(selectedFile && selectedEndpoint);
+  }
+
+  // Run extraction
+  runBtn.addEventListener('click', async () => {
+    errorMsg.classList.remove('show');
+    results.classList.remove('show');
+    loader.classList.add('show');
+    runBtn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    let url = selectedEndpoint;
+    if (selectedEndpoint === '/extract/translate') {
+      url += `?target_lang=${targetLang.value}`;
+    }
+
+    try {
+      const res = await fetch(url, { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || JSON.stringify(data));
+
+      resultTitle.textContent = selectedUcName;
+      resultPre.textContent = JSON.stringify(data, null, 2);
+      results.classList.add('show');
+    } catch (err) {
+      errorMsg.textContent = `Error: ${err.message}`;
+      errorMsg.classList.add('show');
+    } finally {
+      loader.classList.remove('show');
+      runBtn.disabled = false;
+    }
+  });
+
+  // Copy JSON
+  copyBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(resultPre.textContent).then(() => {
+      copyBtn.textContent = 'Copied!';
+      setTimeout(() => copyBtn.textContent = 'Copy JSON', 2000);
+    });
+  });
+</script>
+</body>
+</html>
